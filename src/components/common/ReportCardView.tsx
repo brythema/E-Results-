@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { School, Student, SubjectResult, SubjectItem, calculateGrade } from '../../types';
-import { Printer, GraduationCap, Building2, Award, Calendar, UserCheck } from 'lucide-react';
+import { GraduationCap, Award, Download, Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 interface ReportCardViewProps {
   school: School;
@@ -20,8 +21,165 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
   results,
   principalRemark = 'Excellent performance! Keep striving for academic distinction.',
 }) => {
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const generateDirectPDF = () => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const cleanStudentName = (student.fullName || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanTerm = (school.currentTerm || 'Term').replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Header
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, 210, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ACADEMIC PERFORMANCE REPORT', 105, 8, { align: 'center' });
+
+    // School Info
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text((school.name || 'School').toUpperCase(), 105, 20, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    if (school.motto) {
+      doc.text(`"${school.motto}"`, 105, 25, { align: 'center' });
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${school.address || ''} • Tel: ${school.phone || ''}`, 105, 30, { align: 'center' });
+    doc.text(`Term: ${school.currentTerm || ''} | Session: ${school.currentSession || ''}`, 105, 35, { align: 'center' });
+
+    doc.setDrawColor(203, 213, 225);
+    doc.line(10, 38, 200, 38);
+
+    // Student Info Box
+    doc.setFillColor(248, 250, 252);
+    doc.rect(10, 42, 190, 24, 'F');
+    doc.rect(10, 42, 190, 24, 'S');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Student Name:`, 14, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.fullName || 'N/A', 42, 48);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Admission No:`, 14, 54);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.admissionNumber || student.studentId || 'N/A', 42, 54);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Class Enrolled:`, 14, 60);
+    doc.setFont('helvetica', 'normal');
+    doc.text(className || 'N/A', 42, 60);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Parent / Guardian:`, 110, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.parentName || 'N/A', 145, 48);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Gender:`, 110, 54);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.gender || 'N/A', 145, 54);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Student ID:`, 110, 60);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.studentId || 'N/A', 145, 60);
+
+    // Results Table Header
+    let y = 72;
+    doc.setFillColor(15, 23, 42);
+    doc.rect(10, y, 190, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUBJECT', 14, y + 5.5);
+    doc.text('ASGN', 80, y + 5.5, { align: 'center' });
+    doc.text('QUIZ', 95, y + 5.5, { align: 'center' });
+    doc.text('CA', 110, y + 5.5, { align: 'center' });
+    doc.text('MIDTERM', 128, y + 5.5, { align: 'center' });
+    doc.text('EXAM', 146, y + 5.5, { align: 'center' });
+    doc.text('TOTAL', 165, y + 5.5, { align: 'center' });
+    doc.text('GRADE', 185, y + 5.5, { align: 'center' });
+
+    y += 8;
+    doc.setTextColor(15, 23, 42);
+
+    resultRows.forEach((r, idx) => {
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(10, y, 190, 7, 'F');
+      }
+      doc.setDrawColor(226, 232, 240);
+      doc.line(10, y + 7, 200, y + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(r.subjectName || '').substring(0, 28), 14, y + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(String(r.assignment), 80, y + 5, { align: 'center' });
+      doc.text(String(r.quiz), 95, y + 5, { align: 'center' });
+      doc.text(String(r.ca), 110, y + 5, { align: 'center' });
+      doc.text(String(r.midTerm), 128, y + 5, { align: 'center' });
+      doc.text(String(r.exam), 146, y + 5, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(r.total), 165, y + 5, { align: 'center' });
+      doc.text(String(r.grade), 185, y + 5, { align: 'center' });
+
+      y += 7;
+    });
+
+    // Summary Box
+    y += 5;
+    doc.setFillColor(15, 23, 42);
+    doc.rect(10, y, 190, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TOTAL MARKS: ${totalObtained} / ${possibleTotal}`, 14, y + 7);
+    doc.text(`AVERAGE: ${averagePercentage}%`, 80, y + 7);
+    doc.text(`OVERALL GRADE: ${overallGrade}`, 130, y + 7);
+    doc.text(`CLASSIFICATION: ${overallRemark}`, 195, y + 7, { align: 'right' });
+
+    // Remarks & Footer
+    y += 18;
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Principal's Remarks:", 10, y);
+    doc.setFont('helvetica', 'italic');
+    doc.text(principalRemark, 10, y + 5);
+
+    y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Date Issued: ${new Date().toLocaleDateString()}`, 10, y);
+    doc.text('Official E3 School Portal Report Card', 200, y, { align: 'right' });
+
+    doc.save(`Report_Card_${cleanStudentName}_${cleanTerm}.pdf`);
+  };
+
+  const handleDownloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      generateDirectPDF();
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      window.print();
+    } finally {
+      setDownloadingPDF(false);
+    }
   };
 
   // Map all subjects the student is taking with available approved results
@@ -100,23 +258,35 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md p-6 max-w-4xl mx-auto printable-report">
-      {/* Print Trigger Topbar */}
-      <div className="flex justify-between items-center mb-6 no-print border-b border-slate-100 pb-4">
+      {/* Action Trigger Topbar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 no-print border-b border-slate-100 pb-4">
         <div className="flex items-center gap-2">
           <Award className="w-5 h-5 text-indigo-600" />
           <h2 className="text-base font-bold text-slate-900">Official Student Report Card</h2>
         </div>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors cursor-pointer shadow-sm"
-        >
-          <Printer className="w-4 h-4" />
-          Print Report Card
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadPDF}
+            disabled={downloadingPDF}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors cursor-pointer shadow-sm"
+          >
+            {downloadingPDF ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating Report Card...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download Report Card
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Official Report Card Layout */}
-      <div className="border-4 border-slate-900 p-6 rounded-xl">
+      <div id="report-card-capture" className="border-4 border-slate-900 p-6 rounded-xl bg-white">
         {/* School Header */}
         <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
           <div className="flex items-center justify-center gap-4 mb-2">

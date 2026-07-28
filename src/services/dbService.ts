@@ -499,6 +499,7 @@ function saveLocalStore(data: AppStateData) {
 
 // Helper to enforce a fast timeout for Firestore network operations
 async function withTimeout<T>(promise: Promise<T>, timeoutMs = 2000): Promise<T> {
+  promise.catch(() => {});
   let timer: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error('Firestore operation timeout')), timeoutMs);
