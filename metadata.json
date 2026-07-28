@@ -1,0 +1,6 @@
+{
+  "name": "E3 School Portal",
+  "description": "Lightweight academic management system for recording assessments, calculating results automatically, and monitoring student progress.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
