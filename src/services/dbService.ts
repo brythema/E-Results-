@@ -555,6 +555,14 @@ export const dbService = {
         for (const r of INITIAL_DEMO_DATA.results) {
           await withTimeout(setDoc(doc(db, 'results', r.id), r), 2000);
         }
+        // Write chatMessages
+        for (const msg of INITIAL_DEMO_DATA.chatMessages) {
+          await withTimeout(setDoc(doc(db, 'chatMessages', msg.id), msg), 2000);
+        }
+        // Write notifications
+        for (const notif of INITIAL_DEMO_DATA.notifications) {
+          await withTimeout(setDoc(doc(db, 'notifications', notif.id), notif), 2000);
+        }
         console.log('Firestore seed completed successfully!');
       }
     } catch (err) {
@@ -968,6 +976,51 @@ export const dbService = {
     saveLocalStore(store);
   },
 
+  async removeTeacherAssignment(assignmentId: string): Promise<void> {
+    const store = getLocalStore();
+    store.assignments = store.assignments.filter((a) => a.id !== assignmentId);
+    try {
+      await withTimeout(deleteDoc(doc(db, 'assignments', assignmentId)), 2000);
+    } catch (e) {
+      /* ignore */
+    }
+    saveLocalStore(store);
+  },
+
+  async unassignTeacherFromClassSubject(schoolId: string, classId: string, subjectId: string): Promise<void> {
+    const store = getLocalStore();
+    const existing = store.assignments.find(
+      (a) => a.schoolId === schoolId && a.classId === classId && a.subjectId === subjectId
+    );
+    if (existing) {
+      store.assignments = store.assignments.filter((a) => a.id !== existing.id);
+      try {
+        await withTimeout(deleteDoc(doc(db, 'assignments', existing.id)), 2000);
+      } catch (e) {
+        /* ignore */
+      }
+      saveLocalStore(store);
+    }
+  },
+
+  async unassignAllClassSubjectsForTeacher(schoolId: string, teacherId: string, classId?: string): Promise<void> {
+    const store = getLocalStore();
+    const toRemove = store.assignments.filter(
+      (a) => a.schoolId === schoolId && a.teacherId === teacherId && (!classId || a.classId === classId)
+    );
+    for (const asgn of toRemove) {
+      try {
+        await withTimeout(deleteDoc(doc(db, 'assignments', asgn.id)), 2000);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    store.assignments = store.assignments.filter(
+      (a) => !(a.schoolId === schoolId && a.teacherId === teacherId && (!classId || a.classId === classId))
+    );
+    saveLocalStore(store);
+  },
+
   // RESULTS & ASSESSMENT
   async getResultsByClassAndSubject(schoolId: string, classId: string, subjectId: string): Promise<SubjectResult[]> {
     const localStore = getLocalStore();
@@ -1320,11 +1373,30 @@ export const dbService = {
   async getChatMessagesForUser(schoolId: string, userUidOrEmail: string | string[]): Promise<ChatMessage[]> {
     const store = getLocalStore();
     const ids = Array.isArray(userUidOrEmail) ? userUidOrEmail : [userUidOrEmail];
-    return store.chatMessages.filter(
-      (m) =>
-        m.schoolId === schoolId &&
-        (ids.includes(m.senderUid) || ids.includes(m.recipientUid))
-    );
+
+    try {
+      const q = query(collection(db, 'chatMessages'), where('schoolId', '==', schoolId));
+      const snap = await withTimeout(getDocs(q), 2000);
+      if (!snap.empty) {
+        const remoteMsgs = snap.docs.map((d) => d.data() as ChatMessage);
+        const map = new Map<string, ChatMessage>();
+        store.chatMessages.forEach((m) => map.set(m.id, m));
+        remoteMsgs.forEach((m) => map.set(m.id, m));
+        store.chatMessages = Array.from(map.values());
+        saveLocalStore(store);
+      }
+    } catch (err) {
+      console.warn('Firestore chatMessages fetch warning:', err);
+    }
+
+    const currentStore = getLocalStore();
+    return currentStore.chatMessages
+      .filter(
+        (m) =>
+          m.schoolId === schoolId &&
+          (ids.includes(m.senderUid) || ids.includes(m.recipientUid))
+      )
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   },
 
   async sendChatMessage(
@@ -1333,7 +1405,7 @@ export const dbService = {
     const store = getLocalStore();
     const newMsg: ChatMessage = {
       ...msgData,
-      id: 'chat_' + Date.now(),
+      id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       read: false,
       createdAt: new Date().toISOString(),
     };
@@ -1341,7 +1413,7 @@ export const dbService = {
 
     // Also trigger notification for the recipient
     const chatNotif: AppNotification = {
-      id: 'notif_chat_' + Date.now(),
+      id: 'notif_chat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       schoolId: msgData.schoolId,
       recipientId: msgData.recipientUid,
       recipientRole: msgData.senderRole === 'teacher' ? 'parent' : 'teacher',
@@ -1358,7 +1430,7 @@ export const dbService = {
       await withTimeout(setDoc(doc(db, 'chatMessages', newMsg.id), newMsg), 2000);
       await withTimeout(setDoc(doc(db, 'notifications', chatNotif.id), chatNotif), 2000);
     } catch (e) {
-      /* ignore */
+      console.warn('Firestore chat send error:', e);
     }
     return newMsg;
   },

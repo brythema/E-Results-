@@ -17,6 +17,9 @@ import {
   Phone,
   GraduationCap,
   Sparkles,
+  X,
+  UserMinus,
+  Unlink,
 } from 'lucide-react';
 
 export const TeacherManagement: React.FC = () => {
@@ -121,6 +124,39 @@ export const TeacherManagement: React.FC = () => {
     }
   };
 
+  // Remove a single subject-class assignment for a teacher
+  const handleRemoveAssignment = async (assignmentId: string, label?: string) => {
+    if (label && !window.confirm(`Unassign teacher from ${label}?`)) return;
+    await dbService.removeTeacherAssignment(assignmentId);
+    await loadData();
+  };
+
+  // Remove ALL class/subject assignments for a teacher
+  const handleUnassignAllForTeacher = async (teacherUid: string, teacherName: string) => {
+    if (window.confirm(`Unassign ALL subjects and classes from ${teacherName}?`)) {
+      await dbService.unassignAllClassSubjectsForTeacher(schoolId, teacherUid);
+      await loadData();
+    }
+  };
+
+  // Shortcut: Unassign teacher from ALL subjects in a selected class
+  const handleUnassignAllSubjectsInClass = async () => {
+    if (!assigningTeacher || !selectedClassId) return;
+    const targetClass = classes.find((c) => c.id === selectedClassId);
+    if (
+      window.confirm(
+        `Remove ${assigningTeacher.fullName} from ALL subjects in ${targetClass?.name || 'this class'}?`
+      )
+    ) {
+      await dbService.unassignAllClassSubjectsForTeacher(
+        schoolId,
+        assigningTeacher.uid || assigningTeacher.id,
+        selectedClassId
+      );
+      await loadData();
+    }
+  };
+
   const handleAssignSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningTeacher || !selectedClassId || !selectedSubjectId) return;
@@ -132,7 +168,6 @@ export const TeacherManagement: React.FC = () => {
       assigningTeacher.uid || assigningTeacher.id
     );
 
-    setIsAssignModalOpen(false);
     await loadData();
   };
 
@@ -244,9 +279,22 @@ export const TeacherManagement: React.FC = () => {
 
                 {/* Assigned Classes / Subjects */}
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Assigned Subjects ({myAssignments.length})
-                  </p>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Assigned Subjects ({myAssignments.length})
+                    </p>
+                    {myAssignments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleUnassignAllForTeacher(teacherUid, t.fullName)}
+                        className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer flex items-center gap-0.5"
+                        title="Remove all assignments for this teacher"
+                      >
+                        <UserMinus className="w-3 h-3" />
+                        Unassign All
+                      </button>
+                    )}
+                  </div>
                   {myAssignments.length === 0 ? (
                     <p className="text-[11px] text-slate-400 italic">No subject assigned yet.</p>
                   ) : (
@@ -254,12 +302,24 @@ export const TeacherManagement: React.FC = () => {
                       {myAssignments.map((asg) => {
                         const cl = classes.find((c) => c.id === asg.classId);
                         const sub = subjects.find((s) => s.id === asg.subjectId);
+                        const label = `${cl?.name || 'Class'}: ${sub?.name || 'Subject'}`;
                         return (
                           <span
                             key={asg.id}
-                            className="text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded"
+                            className="text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded flex items-center gap-1 group"
                           >
-                            {cl?.name}: {sub?.name}
+                            <span>{label}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveAssignment(asg.id, label);
+                              }}
+                              title={`Remove ${label}`}
+                              className="text-blue-400 hover:text-rose-600 hover:bg-rose-100 p-0.5 rounded transition-colors cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
                           </span>
                         );
                       })}
@@ -372,72 +432,148 @@ export const TeacherManagement: React.FC = () => {
       <Modal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
-        title={`Assign Teacher: ${assigningTeacher?.fullName}`}
+        title={`Manage Class & Subject Assignments: ${assigningTeacher?.fullName}`}
       >
-        <form onSubmit={handleAssignSubject} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Target Class *</label>
-            <select
-              required
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
-            >
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="space-y-5">
+          {/* Current Assignments Section */}
+          {(() => {
+            const teacherUid = assigningTeacher?.uid || assigningTeacher?.id;
+            const currentTeacherAssignments = assignments.filter((a) => a.teacherId === teacherUid);
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Target Subject *</label>
-            <select
-              required
-              value={selectedSubjectId}
-              onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
-            >
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </div>
+            return (
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-indigo-600" />
+                    Current Assignments ({currentTeacherAssignments.length})
+                  </h4>
+                  {currentTeacherAssignments.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleUnassignAllForTeacher(teacherUid!, assigningTeacher!.fullName)}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <UserMinus className="w-3.5 h-3.5" />
+                      Unassign All
+                    </button>
+                  )}
+                </div>
 
-          {/* Shortcut for Method 1 */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                {currentTeacherAssignments.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No classes or subjects assigned yet.</p>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    {currentTeacherAssignments.map((asg) => {
+                      const cl = classes.find((c) => c.id === asg.classId);
+                      const sub = subjects.find((s) => s.id === asg.subjectId);
+                      const label = `${cl?.name || 'Class'}: ${sub?.name || 'Subject'}`;
+                      return (
+                        <div
+                          key={asg.id}
+                          className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 text-xs shadow-2xs"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-900">{cl?.name || 'Class'}</span>
+                            <span className="text-slate-400 mx-1.5">—</span>
+                            <span className="text-blue-700 font-medium">{sub?.name || 'Subject'}</span>
+                            {sub?.code && <span className="text-[10px] text-slate-400 ml-1">({sub.code})</span>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAssignment(asg.id, label)}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Add / Update Assignment Form */}
+          <form onSubmit={handleAssignSubject} className="space-y-4 pt-2 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <PlusCircle className="w-4 h-4 text-blue-600" />
+              Add Class or Subject Assignment
+            </h4>
+
             <div>
-              <p className="text-xs font-bold text-slate-800">Method 1 Shortcut</p>
-              <p className="text-[11px] text-slate-500">Assign to ALL subjects in this class at once.</p>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Target Class *</label>
+              <select
+                required
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <button
-              type="button"
-              onClick={handleAssignAllSubjectsInClass}
-              className="px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 hover:bg-indigo-100 cursor-pointer"
-            >
-              Assign All
-            </button>
-          </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsAssignModalOpen(false)}
-              className="px-4 py-2 border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer"
-            >
-              Save Assignment
-            </button>
-          </div>
-        </form>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Target Subject *</label>
+              <select
+                required
+                value={selectedSubjectId}
+                onChange={(e) => setSelectedSubjectId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+              >
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Quick Bulk Actions for Selected Class */}
+            <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2">
+              <p className="text-xs font-bold text-indigo-900">Bulk Actions for Selected Class</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleAssignAllSubjectsInClass}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  Assign All Subjects in Class
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUnassignAllSubjectsInClass}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white text-rose-600 border border-rose-200 font-bold text-xs rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  <Unlink className="w-3.5 h-3.5" />
+                  Unassign All Subjects in Class
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsAssignModalOpen(false)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+              >
+                Done
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Assign Subject
+              </button>
+            </div>
+          </form>
+        </div>
       </Modal>
     </div>
   );

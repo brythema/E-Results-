@@ -41,6 +41,10 @@ export const TeacherParentChat: React.FC = () => {
   useEffect(() => {
     if (selectedRecipient) {
       loadMessages();
+      const interval = setInterval(() => {
+        loadMessages();
+      }, 4000);
+      return () => clearInterval(interval);
     }
   }, [selectedRecipient]);
 

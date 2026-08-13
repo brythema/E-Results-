@@ -77,6 +77,13 @@ export const ClassManagement: React.FC = () => {
     await loadData();
   };
 
+  const handleUnassignClassTeacher = async (classId: string, className: string) => {
+    if (window.confirm(`Unassign class teacher from ${className}?`)) {
+      await dbService.updateClass(classId, { classTeacherId: '' });
+      await loadData();
+    }
+  };
+
   const handleDeleteClass = async (id: string) => {
     if (window.confirm('Are you sure you want to remove this class stream?')) {
       await dbService.deleteClass(id);
@@ -148,9 +155,21 @@ export const ClassManagement: React.FC = () => {
                     <span className="text-slate-500 font-medium flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-slate-400" /> Class Teacher:
                     </span>
-                    <span className="font-bold text-slate-800">
-                      {classTeacher ? classTeacher.fullName : 'Not Assigned'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-800">
+                        {classTeacher ? classTeacher.fullName : 'Not Assigned'}
+                      </span>
+                      {classTeacher && (
+                        <button
+                          type="button"
+                          onClick={() => handleUnassignClassTeacher(c.id, c.name)}
+                          className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-100 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                          title="Unassign Class Teacher"
+                        >
+                          Unassign
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
