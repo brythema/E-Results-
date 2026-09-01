@@ -257,18 +257,18 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md p-6 max-w-4xl mx-auto printable-report">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md p-3 sm:p-6 max-w-4xl mx-auto printable-report">
       {/* Action Trigger Topbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 no-print border-b border-slate-100 pb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6 no-print border-b border-slate-100 pb-4">
         <div className="flex items-center gap-2">
           <Award className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-base font-bold text-slate-900">Official Student Report Card</h2>
+          <h2 className="text-sm sm:text-base font-bold text-slate-900">Official Student Report Card</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleDownloadPDF}
             disabled={downloadingPDF}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors cursor-pointer shadow-sm"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer shadow-sm"
           >
             {downloadingPDF ? (
               <>
@@ -286,44 +286,44 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
       </div>
 
       {/* Official Report Card Layout */}
-      <div id="report-card-capture" className="border-4 border-slate-900 p-6 rounded-xl bg-white">
+      <div id="report-card-capture" className="border-2 sm:border-4 border-slate-900 p-3.5 sm:p-6 rounded-xl bg-white">
         {/* School Header */}
-        <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
-          <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="text-center border-b-2 border-slate-800 pb-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-2">
             {school.logoUrl ? (
               <img
                 src={school.logoUrl}
                 alt={school.name}
-                className="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-xl border border-slate-200"
               />
             ) : (
-              <div className="w-16 h-16 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold text-xl">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold text-lg sm:text-xl">
                 {school.name.substring(0, 2).toUpperCase()}
               </div>
             )}
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{school.name}</h1>
+            <div className="text-center sm:text-left">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">{school.name}</h1>
               {school.motto && <p className="text-xs italic font-medium text-slate-600">{`"${school.motto}"`}</p>}
-              <p className="text-xs text-slate-500 mt-1">{school.address} • Tel: {school.phone}</p>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">{school.address} • Tel: {school.phone}</p>
             </div>
           </div>
-          <div className="mt-3 inline-block bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+          <div className="mt-2 inline-block bg-slate-900 text-white px-3 sm:px-4 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
             Academic Performance Report — {school.currentTerm}, {school.currentSession}
           </div>
         </div>
 
         {/* Student Information Details */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-xs text-slate-800">
-          <div className="flex items-center gap-3 md:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 mb-4 sm:mb-6 text-xs text-slate-800">
+          <div className="flex items-center gap-3 sm:col-span-2 md:col-span-1">
             {student.photoUrl ? (
               <img
                 src={student.photoUrl}
                 alt={student.fullName}
-                className="w-16 h-16 rounded-xl object-cover border-2 border-slate-300"
+                className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl object-cover border-2 border-slate-300 shrink-0"
               />
             ) : (
-              <div className="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-lg">
-                <GraduationCap className="w-8 h-8" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-lg shrink-0">
+                <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>
             )}
             <div>
@@ -356,7 +356,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
         </div>
 
         {/* Assessment Weight Distribution Key */}
-        <div className="flex items-center justify-between bg-blue-50/60 border border-blue-200/80 px-3 py-2 rounded-lg mb-4 text-[11px] text-blue-900">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-2 bg-blue-50/60 border border-blue-200/80 px-3 py-2 rounded-lg mb-4 text-[11px] text-blue-900">
           <span className="font-bold">Score Breakdown Weighting:</span>
           <span className="font-medium">
             Assignment ({weights.assignmentMax}m) + Quiz ({weights.quizMax}m) + C.A ({weights.caMax}m) + Mid-Term ({weights.midTermMax}m) + Exam ({weights.examMax}m) = 100 Marks
@@ -365,7 +365,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
 
         {/* Results Subject Breakdown Table */}
         <div className="overflow-x-auto border border-slate-300 rounded-lg mb-6">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full min-w-[640px] text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-900 text-white font-bold text-[11px] uppercase tracking-wider">
                 <th className="p-2.5 border-b border-slate-700">Subject</th>

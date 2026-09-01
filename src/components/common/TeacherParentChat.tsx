@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/dbService';
 import { ChatMessage, Teacher, Student } from '../../types';
-import { MessageSquare, Send, User, Check, CheckCheck, Clock } from 'lucide-react';
+import { MessageSquare, Send, User, Check, CheckCheck, Clock, ArrowLeft } from 'lucide-react';
 
 export const TeacherParentChat: React.FC = () => {
   const { currentUser, currentSchool } = useAuth();
@@ -159,9 +159,13 @@ export const TeacherParentChat: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col md:flex-row h-[550px]">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col md:flex-row h-[550px] sm:h-[600px]">
       {/* Sidebar Recipient List */}
-      <div className="w-full md:w-72 bg-slate-50 border-r border-slate-200 p-4 flex flex-col">
+      <div
+        className={`w-full md:w-80 bg-slate-50 border-r border-slate-200 p-4 flex-col ${
+          selectedRecipient ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         <div className="flex items-center gap-2 mb-3">
           <MessageSquare className="w-4 h-4 text-indigo-600" />
           <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -241,24 +245,35 @@ export const TeacherParentChat: React.FC = () => {
       </div>
 
       {/* Main Chat Conversation */}
-      <div className="flex-1 flex flex-col bg-slate-900/5">
+      <div
+        className={`flex-1 flex-col bg-slate-900/5 ${
+          selectedRecipient ? 'flex' : 'hidden md:flex'
+        }`}
+      >
         {selectedRecipient ? (
           <>
             {/* Header */}
-            <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+            <div className="p-3 sm:p-4 bg-white border-b border-slate-200 flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setSelectedRecipient(null)}
+                className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer mr-1"
+                title="Back to Contacts"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
                 {selectedRecipient.name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-xs font-bold text-slate-900">{selectedRecipient.name}</h3>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <h3 className="text-xs font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">{selectedRecipient.name}</h3>
                   {selectedRecipient.subject && (
                     <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-full border border-indigo-200 shrink-0">
-                      Subject: {selectedRecipient.subject}
+                      {selectedRecipient.subject}
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500">{selectedRecipient.subtitle}</p>
+                <p className="text-[10px] text-slate-500 truncate">{selectedRecipient.subtitle}</p>
               </div>
             </div>
 

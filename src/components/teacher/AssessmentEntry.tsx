@@ -291,11 +291,11 @@ export const AssessmentEntry: React.FC<AssessmentEntryProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => handleSave(false)}
             disabled={saving || students.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-300"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-300"
           >
             <Save className="w-4 h-4" />
             Save Draft
@@ -304,7 +304,7 @@ export const AssessmentEntry: React.FC<AssessmentEntryProps> = ({
           <button
             onClick={() => handleSave(true)}
             disabled={saving || students.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
           >
             <Send className="w-4 h-4" />
             Submit to Admin
@@ -392,7 +392,7 @@ export const AssessmentEntry: React.FC<AssessmentEntryProps> = ({
       {/* Score Sheet Entry Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full min-w-[780px] text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider">
                 <th className="p-3 border-b border-slate-800">#</th>

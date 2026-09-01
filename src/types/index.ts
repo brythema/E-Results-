@@ -50,6 +50,9 @@ export interface Student {
   parentName: string;
   parentEmail: string;
   parentPhone: string;
+  parentPhoneSecondary?: string;
+  parentHouseAddress?: string;
+  parentWorkAddress?: string;
   status: 'active' | 'inactive';
   createdAt?: string;
 }

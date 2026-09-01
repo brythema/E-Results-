@@ -16,6 +16,8 @@ import {
   Phone,
   Mail,
   Calendar,
+  Home,
+  Briefcase,
 } from 'lucide-react';
 
 export const StudentManagement: React.FC = () => {
@@ -42,6 +44,9 @@ export const StudentManagement: React.FC = () => {
   const [parentName, setParentName] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [parentPhone, setParentPhone] = useState('');
+  const [parentPhoneSecondary, setParentPhoneSecondary] = useState('');
+  const [parentHouseAddress, setParentHouseAddress] = useState('');
+  const [parentWorkAddress, setParentWorkAddress] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
   useEffect(() => {
@@ -73,6 +78,9 @@ export const StudentManagement: React.FC = () => {
     setParentName('');
     setParentEmail('');
     setParentPhone('');
+    setParentPhoneSecondary('');
+    setParentHouseAddress('');
+    setParentWorkAddress('');
     setStatus('active');
     setIsModalOpen(true);
   };
@@ -88,6 +96,9 @@ export const StudentManagement: React.FC = () => {
     setParentName(s.parentName);
     setParentEmail(s.parentEmail);
     setParentPhone(s.parentPhone);
+    setParentPhoneSecondary(s.parentPhoneSecondary || '');
+    setParentHouseAddress(s.parentHouseAddress || '');
+    setParentWorkAddress(s.parentWorkAddress || '');
     setStatus(s.status);
     setIsModalOpen(true);
   };
@@ -107,6 +118,9 @@ export const StudentManagement: React.FC = () => {
         parentName,
         parentEmail,
         parentPhone,
+        parentPhoneSecondary,
+        parentHouseAddress,
+        parentWorkAddress,
         status,
       });
     } else {
@@ -121,6 +135,9 @@ export const StudentManagement: React.FC = () => {
         parentName,
         parentEmail,
         parentPhone,
+        parentPhoneSecondary,
+        parentHouseAddress,
+        parentWorkAddress,
         status,
       });
     }
@@ -260,13 +277,34 @@ export const StudentManagement: React.FC = () => {
                       </td>
 
                       <td className="p-3 text-slate-700">
-                        <p className="font-semibold text-slate-900">{s.parentName}</p>
+                        <p className="font-semibold text-slate-900">{s.parentName || 'No Name Set'}</p>
                         <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-400" /> {s.parentEmail || 'N/A'}
+                          <Mail className="w-3 h-3 text-slate-400 shrink-0" /> {s.parentEmail || 'N/A'}
                         </p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-400" /> {s.parentPhone || 'N/A'}
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 flex-wrap">
+                          <Phone className="w-3 h-3 text-slate-400 shrink-0" /> {s.parentPhone || 'N/A'}
+                          {s.parentPhoneSecondary && (
+                            <span className="text-slate-400 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                              2nd: {s.parentPhoneSecondary}
+                            </span>
+                          )}
                         </p>
+                        {(s.parentHouseAddress || s.parentWorkAddress) && (
+                          <div className="mt-1 space-y-0.5 text-[10.5px] text-slate-600 border-t border-slate-100 pt-1">
+                            {s.parentHouseAddress && (
+                              <p className="flex items-center gap-1 truncate max-w-xs" title={`House Address: ${s.parentHouseAddress}`}>
+                                <Home className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate"><strong className="text-slate-700 font-semibold">House:</strong> {s.parentHouseAddress}</span>
+                              </p>
+                            )}
+                            {s.parentWorkAddress && (
+                              <p className="flex items-center gap-1 truncate max-w-xs" title={`Work Address: ${s.parentWorkAddress}`}>
+                                <Briefcase className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate"><strong className="text-slate-700 font-semibold">Work:</strong> {s.parentWorkAddress}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-3">
@@ -387,22 +425,22 @@ export const StudentManagement: React.FC = () => {
 
           <div className="pt-2 border-t border-slate-100">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
-              Parent / Guardian Details
+              Parent / Guardian Information
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Parent Full Name</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Guardian Full Name</label>
                 <input
                   type="text"
                   value={parentName}
                   onChange={(e) => setParentName(e.target.value)}
-                  placeholder="Mrs. Clara Morgan"
+                  placeholder="e.g. Mrs. Clara Morgan"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Parent Email</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Guardian Email</label>
                 <input
                   type="email"
                   value={parentEmail}
@@ -413,12 +451,53 @@ export const StudentManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Parent Phone</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-slate-500" /> Primary Phone Number
+                </label>
                 <input
-                  type="text"
+                  type="tel"
                   value={parentPhone}
                   onChange={(e) => setParentPhone(e.target.value)}
                   placeholder="+234 801 234 5678"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-slate-500" /> Second / Alternate Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={parentPhoneSecondary}
+                  onChange={(e) => setParentPhoneSecondary(e.target.value)}
+                  placeholder="+234 809 987 6543 (Optional)"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <Home className="w-3.5 h-3.5 text-slate-500" /> House / Residential Address
+                </label>
+                <input
+                  type="text"
+                  value={parentHouseAddress}
+                  onChange={(e) => setParentHouseAddress(e.target.value)}
+                  placeholder="e.g. 14 Admiralty Way, Lekki Phase 1, Lagos"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-slate-500" /> Work / Office Address
+                </label>
+                <input
+                  type="text"
+                  value={parentWorkAddress}
+                  onChange={(e) => setParentWorkAddress(e.target.value)}
+                  placeholder="e.g. Suite 5, Victoria Island Tech Park, Lagos"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
                 />
               </div>

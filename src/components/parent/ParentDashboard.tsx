@@ -11,7 +11,6 @@ import {
   BookOpen,
   Calendar,
   CheckCircle2,
-  Lock,
   Megaphone,
   Mail,
   AlertCircle,
@@ -99,21 +98,14 @@ export const ParentDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Parent Header */}
       <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-md">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/30 px-2.5 py-1 rounded-full inline-block mb-2">
-              Parent Portal
-            </span>
-            <h1 className="text-xl font-bold tracking-tight">Parent Academic Portal</h1>
-            <p className="text-xs text-slate-300 mt-1">
-              Secure access to view your child's published academic progress, continuous assessment scores, and term report card.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Lock className="w-3.5 h-3.5 text-sky-400" />
-            Read-Only Access
-          </div>
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/30 px-2.5 py-1 rounded-full inline-block mb-2">
+            Parent Portal
+          </span>
+          <h1 className="text-xl font-bold tracking-tight">Parent Academic Portal</h1>
+          <p className="text-xs text-slate-300 mt-1">
+            Secure access to view your child's published academic progress, continuous assessment scores, and term report card.
+          </p>
         </div>
       </div>
 
