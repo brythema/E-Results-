@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/dbService';
 import { Announcement, AdminDirectMessage, Student } from '../../types';
+import { sanitizeText, globalRateLimiter } from '../../utils/security';
 import { Megaphone, Mail, Send, Trash2, BellRing, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export const AnnouncementsAndDirectMessages: React.FC = () => {
@@ -72,13 +73,24 @@ export const AnnouncementsAndDirectMessages: React.FC = () => {
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!annTitle.trim() || !annContent.trim()) return;
+    const cleanTitle = sanitizeText(annTitle);
+    const cleanContent = sanitizeText(annContent);
+    if (!cleanTitle || !cleanContent) {
+      setStatusMsg({ type: 'error', text: 'Please provide valid text for announcement title and content.' });
+      return;
+    }
+
+    const rateCheck = globalRateLimiter.check(`announcement_${currentUser?.uid || 'admin'}`, 3);
+    if (!rateCheck.allowed) {
+      setStatusMsg({ type: 'error', text: `Please wait ${rateCheck.remainingSeconds}s before publishing another announcement.` });
+      return;
+    }
 
     await dbService.createAnnouncement({
       schoolId,
-      title: annTitle.trim(),
-      content: annContent.trim(),
-      authorName: currentUser?.fullName || 'School Administrator',
+      title: cleanTitle,
+      content: cleanContent,
+      authorName: sanitizeText(currentUser?.fullName || 'School Administrator'),
       priority: annPriority,
     });
 
@@ -91,15 +103,26 @@ export const AnnouncementsAndDirectMessages: React.FC = () => {
   const handleSendDirectMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     const student = students.find((s) => s.id === selectedStudentId);
-    if (!student || !dmSubject.trim() || !dmContent.trim()) return;
+    const cleanSubject = sanitizeText(dmSubject);
+    const cleanContent = sanitizeText(dmContent);
+    if (!student || !cleanSubject || !cleanContent) {
+      setStatusMsg({ type: 'error', text: 'Please fill in all message details.' });
+      return;
+    }
+
+    const rateCheck = globalRateLimiter.check(`dm_${currentUser?.uid || 'admin'}`, 2);
+    if (!rateCheck.allowed) {
+      setStatusMsg({ type: 'error', text: `Please wait ${rateCheck.remainingSeconds}s before sending another direct message.` });
+      return;
+    }
 
     await dbService.sendAdminDirectMessage({
       schoolId,
       recipientEmail: student.parentEmail,
-      recipientName: `${student.parentName} (Parent of ${student.fullName})`,
-      subject: dmSubject.trim(),
-      content: dmContent.trim(),
-      senderName: currentUser?.fullName || 'School Administration',
+      recipientName: `${sanitizeText(student.parentName)} (Parent of ${sanitizeText(student.fullName)})`,
+      subject: cleanSubject,
+      content: cleanContent,
+      senderName: sanitizeText(currentUser?.fullName || 'School Administration'),
       category: dmCategory,
     });
 
@@ -109,6 +132,7 @@ export const AnnouncementsAndDirectMessages: React.FC = () => {
     });
     await loadData();
   };
+
 
   const handleDeleteAnnouncement = async (id: string) => {
     await dbService.deleteAnnouncement(id);

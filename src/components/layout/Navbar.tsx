@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { usePWA } from '../../context/PWAContext';
 import { dbService } from '../../services/dbService';
 import { UserRole, AppNotification } from '../../types';
 import {
@@ -17,6 +18,9 @@ import {
   MessageSquare,
   Megaphone,
   X,
+  Download,
+  Smartphone,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -35,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateToTab,
 }) => {
   const { currentUser, currentSchool, logout, switchDemoRole } = useAuth();
+  const { promptInstall, isInstalled, isIOS, isAndroid } = usePWA();
   const [showDemoDropdown, setShowDemoDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -171,6 +176,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Actions: Notifications, Demo Role Quick Switcher & User Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* PWA App Install Button */}
+            {!isInstalled ? (
+              <button
+                type="button"
+                onClick={promptInstall}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer border border-emerald-500/40"
+                title="Install E3 School app on your Computer, iPhone, iPad or Android phone"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Install App</span>
+                <span className="sm:hidden text-[10px]">App</span>
+              </button>
+            ) : (
+              <div
+                className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] font-bold text-emerald-400"
+                title="E3 School Portal is installed and running in App Mode"
+              >
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>PWA App</span>
+              </div>
+            )}
+
             {onShowLanding && (
               <button
                 onClick={onShowLanding}

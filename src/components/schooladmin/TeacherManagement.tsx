@@ -4,6 +4,8 @@ import { dbService } from '../../services/dbService';
 import { Teacher, ClassItem, SubjectItem, ClassSubjectAssignment } from '../../types';
 import { Modal } from '../common/Modal';
 import { Badge } from '../common/Badge';
+import { TeacherAllocationModal } from './TeacherAllocationModal';
+import { TeacherProfileModal } from './TeacherProfileModal';
 import {
   Users,
   PlusCircle,
@@ -20,6 +22,8 @@ import {
   X,
   UserMinus,
   Unlink,
+  Eye,
+  MessageSquare,
 } from 'lucide-react';
 
 export const TeacherManagement: React.FC = () => {
@@ -41,11 +45,12 @@ export const TeacherManagement: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [qualification, setQualification] = useState('');
 
-  // Assign Modal State
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  // Full Allocation Allocator Modal State
+  const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+  const [allocationTeacherId, setAllocationTeacherId] = useState<string>('');
+
+  // Full Teacher Profile & History Modal State
+  const [selectedTeacherForProfile, setSelectedTeacherForProfile] = useState<Teacher | null>(null);
 
   useEffect(() => {
     loadData();
@@ -63,8 +68,6 @@ export const TeacherManagement: React.FC = () => {
     setClasses(clData);
     setSubjects(sbData);
     setAssignments(asgnData);
-    if (clData.length > 0 && !selectedClassId) setSelectedClassId(clData[0].id);
-    if (sbData.length > 0 && !selectedSubjectId) setSelectedSubjectId(sbData[0].id);
     setLoading(false);
   };
 
@@ -86,9 +89,13 @@ export const TeacherManagement: React.FC = () => {
     setIsTeacherModalOpen(true);
   };
 
-  const openAssignModal = (t: Teacher) => {
-    setAssigningTeacher(t);
-    setIsAssignModalOpen(true);
+  const openAllocator = (teacherId?: string) => {
+    setAllocationTeacherId(teacherId || '');
+    setIsAllocationModalOpen(true);
+  };
+
+  const openTeacherProfile = (t: Teacher) => {
+    setSelectedTeacherForProfile(t);
   };
 
   const handleSaveTeacher = async (e: React.FormEvent) => {
@@ -139,53 +146,6 @@ export const TeacherManagement: React.FC = () => {
     }
   };
 
-  // Shortcut: Unassign teacher from ALL subjects in a selected class
-  const handleUnassignAllSubjectsInClass = async () => {
-    if (!assigningTeacher || !selectedClassId) return;
-    const targetClass = classes.find((c) => c.id === selectedClassId);
-    if (
-      window.confirm(
-        `Remove ${assigningTeacher.fullName} from ALL subjects in ${targetClass?.name || 'this class'}?`
-      )
-    ) {
-      await dbService.unassignAllClassSubjectsForTeacher(
-        schoolId,
-        assigningTeacher.uid || assigningTeacher.id,
-        selectedClassId
-      );
-      await loadData();
-    }
-  };
-
-  const handleAssignSubject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assigningTeacher || !selectedClassId || !selectedSubjectId) return;
-
-    await dbService.assignTeacherToClassSubject(
-      schoolId,
-      selectedClassId,
-      selectedSubjectId,
-      assigningTeacher.uid || assigningTeacher.id
-    );
-
-    await loadData();
-  };
-
-  // Method 1 Shortcut: Assign teacher to ALL subjects in a class!
-  const handleAssignAllSubjectsInClass = async () => {
-    if (!assigningTeacher || !selectedClassId) return;
-    for (const sub of subjects) {
-      await dbService.assignTeacherToClassSubject(
-        schoolId,
-        selectedClassId,
-        sub.id,
-        assigningTeacher.uid || assigningTeacher.id
-      );
-    }
-    setIsAssignModalOpen(false);
-    await loadData();
-  };
-
   const filteredTeachers = teachers.filter(
     (t) =>
       t.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -202,28 +162,47 @@ export const TeacherManagement: React.FC = () => {
             <h1 className="text-lg font-bold text-slate-900">Teachers Management</h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Add teachers, manage qualifications, and configure class/subject assignments.
+            Add teachers, inspect full profiles and message history, and allocate subjects and classes.
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add Teacher
-        </button>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            type="button"
+            onClick={() => openAllocator()}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
+          >
+            <BookOpen className="w-4 h-4" />
+            Subject & Class Allocator
+          </button>
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add Teacher
+          </button>
+        </div>
       </div>
 
       {/* Assignment Method Information Banner */}
       <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
           <span className="font-bold uppercase text-[10px] bg-indigo-200/60 text-indigo-950 px-2 py-0.5 rounded mr-2">
-            Flexible Assignment System
+            Subject & Class Allocation Matrix
           </span>
-          <span className="font-semibold">Supports Method 1 (Class Teacher), Method 2 (Subject Specialist), or Method 3 (Mixed).</span>
+          <span className="font-semibold">
+            Admin can decide and allocate to each teacher which subject they teach and in what class.
+          </span>
         </div>
-        <p className="text-[11px] text-indigo-700">Assign teachers easily per class & subject.</p>
+        <button
+          type="button"
+          onClick={() => openAllocator()}
+          className="text-xs font-bold text-indigo-700 hover:text-indigo-950 underline cursor-pointer"
+        >
+          Open Allocation Matrix →
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -243,23 +222,27 @@ export const TeacherManagement: React.FC = () => {
       {/* Teachers Directory Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTeachers.map((t) => {
-          // Find assigned subjects for this teacher
           const teacherUid = t.uid || t.id;
           const myAssignments = assignments.filter((a) => a.teacherId === teacherUid);
 
           return (
             <div
               key={t.id}
-              className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all"
+              className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between space-y-4 hover:border-indigo-300 transition-all group"
             >
               <div>
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-sm">
+                  <div
+                    onClick={() => openTeacherProfile(t)}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                       {t.fullName.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{t.fullName}</h3>
+                      <h3 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                        {t.fullName}
+                      </h3>
                       <p className="text-[11px] text-slate-500 font-medium">{t.qualification || 'Educator'}</p>
                     </div>
                   </div>
@@ -281,7 +264,7 @@ export const TeacherManagement: React.FC = () => {
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Assigned Subjects ({myAssignments.length})
+                      Allocated Courses ({myAssignments.length})
                     </p>
                     {myAssignments.length > 0 && (
                       <button
@@ -296,7 +279,7 @@ export const TeacherManagement: React.FC = () => {
                     )}
                   </div>
                   {myAssignments.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 italic">No subject assigned yet.</p>
+                    <p className="text-[11px] text-slate-400 italic">No subjects allocated yet.</p>
                   ) : (
                     <div className="flex flex-wrap gap-1">
                       {myAssignments.map((asg) => {
@@ -306,7 +289,7 @@ export const TeacherManagement: React.FC = () => {
                         return (
                           <span
                             key={asg.id}
-                            className="text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded flex items-center gap-1 group"
+                            className="text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded flex items-center gap-1 group/chip"
                           >
                             <span>{label}</span>
                             <button
@@ -328,24 +311,38 @@ export const TeacherManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  onClick={() => openAssignModal(t)}
-                  className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  Assign Class/Subject
-                </button>
+              <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => openTeacherProfile(t)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Full Profile & Messages
+                  </button>
 
-                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => openAllocator(teacherUid)}
+                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Allocate
+                  </button>
+                </div>
+
+                <div className="flex justify-end gap-1 pt-1 border-t border-slate-50">
                   <button
                     onClick={() => openEditModal(t)}
+                    title="Edit Teacher Info"
                     className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDeleteTeacher(t.id)}
+                    title="Delete Teacher"
                     className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -428,153 +425,30 @@ export const TeacherManagement: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Assign Teacher Modal */}
-      <Modal
-        isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
-        title={`Manage Class & Subject Assignments: ${assigningTeacher?.fullName}`}
-      >
-        <div className="space-y-5">
-          {/* Current Assignments Section */}
-          {(() => {
-            const teacherUid = assigningTeacher?.uid || assigningTeacher?.id;
-            const currentTeacherAssignments = assignments.filter((a) => a.teacherId === teacherUid);
+      {/* Advanced Teacher Subject & Class Allocation Modal */}
+      <TeacherAllocationModal
+        isOpen={isAllocationModalOpen}
+        onClose={() => setIsAllocationModalOpen(false)}
+        schoolId={schoolId}
+        teachers={teachers}
+        classes={classes}
+        subjects={subjects}
+        assignments={assignments}
+        initialTeacherId={allocationTeacherId}
+        onAllocationsUpdated={loadData}
+      />
 
-            return (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-indigo-600" />
-                    Current Assignments ({currentTeacherAssignments.length})
-                  </h4>
-                  {currentTeacherAssignments.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handleUnassignAllForTeacher(teacherUid!, assigningTeacher!.fullName)}
-                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <UserMinus className="w-3.5 h-3.5" />
-                      Unassign All
-                    </button>
-                  )}
-                </div>
-
-                {currentTeacherAssignments.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No classes or subjects assigned yet.</p>
-                ) : (
-                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                    {currentTeacherAssignments.map((asg) => {
-                      const cl = classes.find((c) => c.id === asg.classId);
-                      const sub = subjects.find((s) => s.id === asg.subjectId);
-                      const label = `${cl?.name || 'Class'}: ${sub?.name || 'Subject'}`;
-                      return (
-                        <div
-                          key={asg.id}
-                          className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 text-xs shadow-2xs"
-                        >
-                          <div>
-                            <span className="font-bold text-slate-900">{cl?.name || 'Class'}</span>
-                            <span className="text-slate-400 mx-1.5">—</span>
-                            <span className="text-blue-700 font-medium">{sub?.name || 'Subject'}</span>
-                            {sub?.code && <span className="text-[10px] text-slate-400 ml-1">({sub.code})</span>}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAssignment(asg.id, label)}
-                            className="flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Add / Update Assignment Form */}
-          <form onSubmit={handleAssignSubject} className="space-y-4 pt-2 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <PlusCircle className="w-4 h-4 text-blue-600" />
-              Add Class or Subject Assignment
-            </h4>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Target Class *</label>
-              <select
-                required
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
-              >
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Target Subject *</label>
-              <select
-                required
-                value={selectedSubjectId}
-                onChange={(e) => setSelectedSubjectId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-600"
-              >
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Quick Bulk Actions for Selected Class */}
-            <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2">
-              <p className="text-xs font-bold text-indigo-900">Bulk Actions for Selected Class</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleAssignAllSubjectsInClass}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  Assign All Subjects in Class
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUnassignAllSubjectsInClass}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-white text-rose-600 border border-rose-200 font-bold text-xs rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                >
-                  <Unlink className="w-3.5 h-3.5" />
-                  Unassign All Subjects in Class
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsAssignModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
-              >
-                Done
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Assign Subject
-              </button>
-            </div>
-          </form>
-        </div>
-      </Modal>
+      {/* Comprehensive Teacher Profile & History Modal */}
+      <TeacherProfileModal
+        isOpen={!!selectedTeacherForProfile}
+        onClose={() => setSelectedTeacherForProfile(null)}
+        teacher={selectedTeacherForProfile}
+        classes={classes}
+        subjects={subjects}
+        assignments={assignments}
+        onOpenAllocator={(tId) => openAllocator(tId)}
+      />
     </div>
   );
 };
+

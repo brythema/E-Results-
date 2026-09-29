@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePWA } from '../../context/PWAContext';
 import {
   GraduationCap,
   ShieldCheck,
@@ -10,6 +11,9 @@ import {
   Calculator,
   CheckCircle2,
   Sparkles,
+  Download,
+  Smartphone,
+  Laptop,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -17,6 +21,8 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+  const { promptInstall, isInstalled, isIOS, isAndroid } = usePWA();
+
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-between">
       {/* Header Bar */}
@@ -29,12 +35,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             <span className="font-bold text-lg text-white tracking-tight">E3 School Portal</span>
           </div>
 
-          <button
-            onClick={onGetStarted}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
-          >
-            Access Portal <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!isInstalled && (
+              <button
+                type="button"
+                onClick={promptInstall}
+                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-700 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Install App</span>
+              </button>
+            )}
+            <button
+              onClick={onGetStarted}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              Access Portal <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 

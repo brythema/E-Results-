@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/dbService';
-import { Student, ClassItem } from '../../types';
+import { Student, ClassItem, SubjectItem, Teacher } from '../../types';
 import { Modal } from '../common/Modal';
 import { Badge } from '../common/Badge';
+import { StudentProfileModal } from './StudentProfileModal';
 import {
   GraduationCap,
   PlusCircle,
@@ -18,6 +19,8 @@ import {
   Calendar,
   Home,
   Briefcase,
+  Eye,
+  MessageSquare,
 } from 'lucide-react';
 
 export const StudentManagement: React.FC = () => {
@@ -26,6 +29,8 @@ export const StudentManagement: React.FC = () => {
 
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
@@ -33,6 +38,9 @@ export const StudentManagement: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+  // Full Profile & History Modal State
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
 
   // Form Fields
   const [fullName, setFullName] = useState('');
@@ -55,12 +63,16 @@ export const StudentManagement: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [stData, clData] = await Promise.all([
+    const [stData, clData, sbData, tcData] = await Promise.all([
       dbService.getStudentsBySchool(schoolId),
       dbService.getClassesBySchool(schoolId),
+      dbService.getSubjectsBySchool(schoolId),
+      dbService.getTeachersBySchool(schoolId),
     ]);
     setStudents(stData);
     setClasses(clData);
+    setSubjects(sbData);
+    setTeachers(tcData);
     if (clData.length > 0 && !currentClassId) {
       setCurrentClassId(clData[0].id);
     }
@@ -244,20 +256,25 @@ export const StudentManagement: React.FC = () => {
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-3">
-                        <div className="flex items-center gap-3">
+                        <div
+                          onClick={() => setSelectedStudentForProfile(s)}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
                           {s.photoUrl ? (
                             <img
                               src={s.photoUrl}
                               alt={s.fullName}
-                              className="w-10 h-10 rounded-xl object-cover border border-slate-200"
+                              className="w-10 h-10 rounded-xl object-cover border border-slate-200 group-hover:border-blue-400 transition-colors"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-sm">
+                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
                               {s.fullName.charAt(0)}
                             </div>
                           )}
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{s.fullName}</p>
+                            <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                              {s.fullName}
+                            </p>
                             <p className="text-[11px] text-slate-500">
                               {s.gender} • DOB: {s.dob}
                             </p>
@@ -315,21 +332,32 @@ export const StudentManagement: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="p-3 text-right space-x-1">
-                        <button
-                          onClick={() => openEditModal(s)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Student"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteStudent(s.id)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Remove Student"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStudentForProfile(s)}
+                            className="px-2.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                            title="View Full Profile, Results & Messages"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden xl:inline">Profile & Messages</span>
+                          </button>
+                          <button
+                            onClick={() => openEditModal(s)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Student"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(s.id)}
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove Student"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -533,6 +561,16 @@ export const StudentManagement: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Comprehensive Student Profile, Academic History & Messages Modal */}
+      <StudentProfileModal
+        isOpen={!!selectedStudentForProfile}
+        onClose={() => setSelectedStudentForProfile(null)}
+        student={selectedStudentForProfile}
+        classes={classes}
+        subjects={subjects}
+        teachers={teachers}
+      />
     </div>
   );
 };

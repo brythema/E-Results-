@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { usePWA } from '../../context/PWAContext';
 import { UserRole } from '../../types';
 import {
   GraduationCap,
@@ -12,6 +13,9 @@ import {
   User,
   ArrowRight,
   Sparkles,
+  Download,
+  Smartphone,
+  Laptop,
 } from 'lucide-react';
 
 interface LoginFormProps {
@@ -23,11 +27,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onForgotPasswordClick,
   onBackToLanding,
 }) => {
-  const { login, switchDemoRole } = useAuth();
+  const { login, switchDemoRole, sessionNotice, clearSessionNotice } = useAuth();
+  const { promptInstall, isInstalled, isIOS, isAndroid } = usePWA();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +88,27 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </p>
         </div>
 
+        {/* Session Inactivity Timeout Notice */}
+        {sessionNotice && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 font-medium flex items-center justify-between gap-2">
+            <span>{sessionNotice}</span>
+            <button
+              type="button"
+              onClick={clearSessionNotice}
+              className="text-amber-900 font-bold hover:underline shrink-0 text-[11px]"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium text-center">
             {error}
           </div>
         )}
+
 
         {/* Quick Demo Login Picker */}
         <div className="mb-6 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
@@ -174,8 +195,32 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </button>
         </form>
 
-        <p className="text-[11px] text-center text-slate-400 mt-6">
-          Powered by <strong className="text-slate-600">E3 School Portal</strong> • Version 1 MVP
+        {/* PWA App Install Banner */}
+        {!isInstalled && (
+          <div className="mt-5 p-3 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                <Download className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-slate-900">Install E3 Portal App</p>
+                <p className="text-[10px] text-slate-500">
+                  {isIOS ? 'Install on iPhone / iPad' : isAndroid ? 'Install on Android' : 'Install on PC / Mac'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={promptInstall}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] rounded-xl transition-all cursor-pointer shadow-xs"
+            >
+              Install
+            </button>
+          </div>
+        )}
+
+        <p className="text-[11px] text-center text-slate-400 mt-5">
+          Powered by <strong className="text-slate-600">E3 School Portal</strong> • Cross-Platform PWA
         </p>
       </div>
     </div>

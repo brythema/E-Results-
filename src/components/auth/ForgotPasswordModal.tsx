@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../services/firebase';
+import { isValidEmail, sanitizeText } from '../../utils/security';
 import { Mail, CheckCircle2 } from 'lucide-react';
 
 interface ForgotPasswordModalProps {
@@ -17,8 +18,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Please enter your account email address.');
+    const cleanEmail = sanitizeText(email).trim().toLowerCase();
+    if (!cleanEmail || !isValidEmail(cleanEmail)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -26,15 +28,16 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen
     setError(null);
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, cleanEmail);
       setSent(true);
     } catch (err: any) {
-      // If mock/demo mode or auth fail, show helpful guidance
-      setSent(true); // Graceful feedback
+      // In demo mode or if Firebase auth is not configured, show guidance gracefully
+      setSent(true);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Reset Password" maxWidth="md">

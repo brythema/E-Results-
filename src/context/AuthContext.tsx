@@ -12,14 +12,19 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchDemoRole: (role: UserRole, customUid?: string) => Promise<void>;
   refreshAuthData: () => Promise<void>;
+  sessionNotice: string | null;
+  clearSessionNotice: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
 
   // Initialize DB seed
   useEffect(() => {
@@ -28,6 +33,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loadInitialUser();
     });
   }, []);
+
+  // Inactive Session Auto-Logout Timer (30 minutes)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const resetIdleTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setSessionNotice('Your session expired due to 30 minutes of inactivity. Please log in again.');
+        logout();
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    // Initial set
+    resetIdleTimer();
+
+    // User activity listeners
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach((evt) => window.addEventListener(evt, resetIdleTimer, { passive: true }));
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach((evt) => window.removeEventListener(evt, resetIdleTimer));
+    };
+  }, [currentUser]);
+
+  const clearSessionNotice = () => setSessionNotice(null);
+
 
   const loadInitialUser = async () => {
     setLoading(true);
@@ -140,6 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         switchDemoRole,
         refreshAuthData,
+        sessionNotice,
+        clearSessionNotice,
       }}
     >
       {children}

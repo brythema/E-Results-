@@ -5,11 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PWAProvider } from './context/PWAContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { LoginForm } from './components/auth/LoginForm';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { LandingPage } from './components/landing/LandingPage';
+import { PWAInstallModal } from './components/common/PWAInstallModal';
+import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 
 // Super Admin
 import { SuperAdminDashboard } from './components/superadmin/SuperAdminDashboard';
@@ -44,6 +47,7 @@ const MainAppContent: React.FC = () => {
   // Selected assignment params for teacher score entry shortcut
   const [selectedEntryClassId, setSelectedEntryClassId] = useState<string | undefined>();
   const [selectedEntrySubjectId, setSelectedEntrySubjectId] = useState<string | undefined>();
+  const [selectedChatRecipientUid, setSelectedChatRecipientUid] = useState<string | undefined>();
 
   // Reset tab to dashboard whenever user or role changes
   useEffect(() => {
@@ -96,10 +100,20 @@ const MainAppContent: React.FC = () => {
     setCurrentTab('assessment_entry');
   };
 
+  const handleNavigateToChat = (recipientUid?: string) => {
+    setSelectedChatRecipientUid(recipientUid);
+    setCurrentTab('chat');
+  };
+
   const renderActiveTabContent = () => {
     // Common Tabs for Chat and Announcements
     if (currentTab === 'chat') {
-      return <TeacherParentChat />;
+      return (
+        <TeacherParentChat
+          initialRecipientUid={selectedChatRecipientUid}
+          onBackToDashboard={() => setCurrentTab('dashboard')}
+        />
+      );
     }
     if (currentTab === 'announcements') {
       return <AnnouncementsAndDirectMessages />;
@@ -133,7 +147,13 @@ const MainAppContent: React.FC = () => {
         case 'dashboard':
           return (
             <TeacherDashboard
-              onNavigateTab={(tab) => setCurrentTab(tab)}
+              onNavigateTab={(tab) => {
+                if (tab === 'chat') {
+                  handleNavigateToChat();
+                } else {
+                  setCurrentTab(tab);
+                }
+              }}
               onSelectAssignmentForEntry={handleSelectAssignmentForEntry}
             />
           );
@@ -148,7 +168,13 @@ const MainAppContent: React.FC = () => {
         default:
           return (
             <TeacherDashboard
-              onNavigateTab={(tab) => setCurrentTab(tab)}
+              onNavigateTab={(tab) => {
+                if (tab === 'chat') {
+                  handleNavigateToChat();
+                } else {
+                  setCurrentTab(tab);
+                }
+              }}
               onSelectAssignmentForEntry={handleSelectAssignmentForEntry}
             />
           );
@@ -157,7 +183,17 @@ const MainAppContent: React.FC = () => {
 
     // Parent Views (Read-only student report card viewing)
     if (role === 'parent' || role === 'student') {
-      return <ParentDashboard />;
+      return (
+        <ParentDashboard
+          onNavigateTab={(tab, recipientUid) => {
+            if (tab === 'chat') {
+              handleNavigateToChat(recipientUid);
+            } else {
+              setCurrentTab(tab);
+            }
+          }}
+        />
+      );
     }
 
     return <SchoolAdminDashboard onNavigateTab={(tab) => setCurrentTab(tab)} />;
@@ -165,6 +201,7 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
+      <OfflineStatusBanner />
       <Navbar
         onToggleSidebar={() => setMobileMenuOpen(!mobileMenuOpen)}
         onNavigateHome={() => setCurrentTab('dashboard')}
@@ -189,14 +226,18 @@ const MainAppContent: React.FC = () => {
           {renderActiveTabContent()}
         </main>
       </div>
+
+      <PWAInstallModal />
     </div>
   );
 };
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainAppContent />
-    </AuthProvider>
+    <PWAProvider>
+      <AuthProvider>
+        <MainAppContent />
+      </AuthProvider>
+    </PWAProvider>
   );
 }

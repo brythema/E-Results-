@@ -24,6 +24,7 @@ import {
   ChatMessage,
   Announcement,
   AdminDirectMessage,
+  AuditLog,
 } from '../types';
 
 // Storage keys for localStorage caching/fallback so app works seamlessly even offline
@@ -42,9 +43,11 @@ export interface AppStateData {
   chatMessages: ChatMessage[];
   announcements: Announcement[];
   adminDirectMessages: AdminDirectMessage[];
+  auditLogs: AuditLog[];
 }
 
 export const INITIAL_DEMO_DATA: AppStateData = {
+
   schools: [
     {
       id: 'sch_graceville_01',
@@ -428,8 +431,8 @@ export const INITIAL_DEMO_DATA: AppStateData = {
       senderRole: 'parent',
       recipientUid: 'uid_teacher_math',
       recipientName: 'Mr. David Okafor',
-      message: 'Hello Mr. David! I wanted to inquire about Alex\'s progress in Mathematics.',
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+      message: 'Hello Mr. David! I wanted to inquire about Alex\'s progress in Mathematics this term.',
+      createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
       read: true,
     },
     {
@@ -440,8 +443,80 @@ export const INITIAL_DEMO_DATA: AppStateData = {
       senderRole: 'teacher',
       recipientUid: 'parent@graceville.edu',
       recipientName: 'Mrs. Clara Morgan',
-      message: 'Good day Mrs. Morgan! Alex is performing brilliantly, especially in problem solving and mental math.',
-      createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+      message: 'Good day Mrs. Morgan! Alex is performing brilliantly, especially in problem solving and mental arithmetic. He scored top marks on his recent CA.',
+      createdAt: new Date(Date.now() - 3600000 * 46).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_003',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'parent@graceville.edu',
+      senderName: 'Mrs. Clara Morgan',
+      senderRole: 'parent',
+      recipientUid: 'uid_teacher_math',
+      recipientName: 'Mr. David Okafor',
+      message: 'That is wonderful news! Thank you for the consistent guidance. Will there be homework over the weekend?',
+      createdAt: new Date(Date.now() - 3600000 * 44).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_004',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'uid_teacher_math',
+      senderName: 'Mr. David Okafor',
+      senderRole: 'teacher',
+      recipientUid: 'parent@graceville.edu',
+      recipientName: 'Mrs. Clara Morgan',
+      message: 'Yes, just exercises 4 through 8 on Fractions in Chapter 3. Have a pleasant weekend!',
+      createdAt: new Date(Date.now() - 3600000 * 40).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_005',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'chen.parent@graceville.edu',
+      senderName: 'Mr. David Chen',
+      senderRole: 'parent',
+      recipientUid: 'uid_teacher_eng',
+      recipientName: 'Mrs. Sarah Jenkins',
+      message: 'Dear Mrs. Jenkins, Sophia mentioned she needs extra reading materials for comprehension practice. Do you have recommended book titles?',
+      createdAt: new Date(Date.now() - 3600000 * 30).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_006',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'uid_teacher_eng',
+      senderName: 'Mrs. Sarah Jenkins',
+      senderRole: 'teacher',
+      recipientUid: 'chen.parent@graceville.edu',
+      recipientName: 'Mr. David Chen',
+      message: 'Hello Mr. Chen! Yes, I recommend "The Secret Garden" adapted edition and Oxford Progressive English Reader Level 4. Sophia is doing very well with vocabulary!',
+      createdAt: new Date(Date.now() - 3600000 * 26).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_007',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'parent@graceville.edu',
+      senderName: 'Mrs. Clara Morgan',
+      senderRole: 'parent',
+      recipientUid: 'uid_teacher_eng',
+      recipientName: 'Mrs. Sarah Jenkins',
+      message: 'Good afternoon Mrs. Jenkins, just wanted to check if Alex submitted his English essay on time today.',
+      createdAt: new Date(Date.now() - 3600000 * 16).toISOString(),
+      read: true,
+    },
+    {
+      id: 'chat_008',
+      schoolId: 'sch_graceville_01',
+      senderUid: 'uid_teacher_eng',
+      senderName: 'Mrs. Sarah Jenkins',
+      senderRole: 'teacher',
+      recipientUid: 'parent@graceville.edu',
+      recipientName: 'Mrs. Clara Morgan',
+      message: 'Good afternoon! Yes, he submitted it this morning and it was very well articulated.',
+      createdAt: new Date(Date.now() - 3600000 * 14).toISOString(),
       read: true,
     },
   ],
@@ -479,6 +554,19 @@ export const INITIAL_DEMO_DATA: AppStateData = {
       createdAt: new Date(Date.now() - 3600000 * 10).toISOString(),
     },
   ],
+  auditLogs: [
+    {
+      id: 'audit_init_001',
+      schoolId: 'sch_graceville_01',
+      actorUid: 'uid_principal_01',
+      actorName: 'Dr. Arthur Sterling',
+      actorRole: 'school_admin',
+      action: 'SYSTEM_INITIALIZATION',
+      resource: 'portal_core',
+      details: 'Initial secure academic session and assessment configurations bootstrapped.',
+      timestamp: new Date(Date.now() - 86400000 * 5).toISOString(),
+    },
+  ],
 };
 
 // Helper to get local cache
@@ -494,6 +582,7 @@ function getLocalStore(): AppStateData {
     if (!parsed.chatMessages) parsed.chatMessages = INITIAL_DEMO_DATA.chatMessages;
     if (!parsed.announcements) parsed.announcements = INITIAL_DEMO_DATA.announcements;
     if (!parsed.adminDirectMessages) parsed.adminDirectMessages = INITIAL_DEMO_DATA.adminDirectMessages;
+    if (!parsed.auditLogs) parsed.auditLogs = INITIAL_DEMO_DATA.auditLogs || [];
     return parsed;
   } catch (err) {
     console.error('Error reading local data cache', err);
@@ -1037,12 +1126,14 @@ export const dbService = {
   async getResultsByClassAndSubject(schoolId: string, classId: string, subjectId: string): Promise<SubjectResult[]> {
     const localStore = getLocalStore();
     const localResults = localStore.results.filter(
-      (r) => r.schoolId === schoolId && (r.classId === classId || !classId) && r.subjectId === subjectId
+      (r) => (!r.schoolId || r.schoolId === schoolId) && (r.classId === classId || !classId) && r.subjectId === subjectId
     );
 
     const mergedMap = new Map<string, SubjectResult>();
     localResults.forEach((r) => {
-      const key = r.id || `${r.studentId}_${r.subjectId}`;
+      const sessionKey = r.session || '2025/2026';
+      const termKey = r.term || 'First Term';
+      const key = `${r.studentId}_${r.subjectId}_${sessionKey}_${termKey}`;
       mergedMap.set(key, r);
     });
 
@@ -1056,7 +1147,10 @@ export const dbService = {
       if (!snap.empty) {
         const firestoreResults = snap.docs.map((d) => ({ id: d.id, ...(d.data() as SubjectResult) }));
         firestoreResults.forEach((r) => {
-          const key = r.id || `${r.studentId}_${r.subjectId}`;
+          if (classId && r.classId && r.classId !== classId) return;
+          const sessionKey = r.session || '2025/2026';
+          const termKey = r.term || 'First Term';
+          const key = `${r.studentId}_${r.subjectId}_${sessionKey}_${termKey}`;
           const existing = mergedMap.get(key);
           if (!existing || new Date(r.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
             mergedMap.set(key, r);
@@ -1068,6 +1162,110 @@ export const dbService = {
     }
 
     return Array.from(mergedMap.values());
+  },
+
+  async saveSingleResult(
+    result: Partial<SubjectResult> & { schoolId: string; studentId: string; subjectId: string }
+  ): Promise<SubjectResult> {
+    const store = getLocalStore();
+    const total =
+      (result.scores?.assignment || 0) +
+      (result.scores?.quiz || 0) +
+      (result.scores?.ca || 0) +
+      (result.scores?.midTerm || 0) +
+      (result.scores?.exam || 0);
+
+    const { grade } = calculateGrade(total);
+
+    const existingIndex = store.results.findIndex(
+      (r) =>
+        (result.id && r.id === result.id) ||
+        (r.studentId === result.studentId &&
+          r.subjectId === result.subjectId &&
+          (r.schoolId === result.schoolId || !result.schoolId || !r.schoolId))
+    );
+
+    const existingRecord = existingIndex !== -1 ? store.results[existingIndex] : null;
+
+    const record: SubjectResult = {
+      id: result.id || existingRecord?.id || `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${result.studentId}`,
+      schoolId: result.schoolId || existingRecord?.schoolId || 'sch_graceville_01',
+      studentId: result.studentId,
+      classId: result.classId || existingRecord?.classId || '',
+      subjectId: result.subjectId,
+      teacherId: result.teacherId || existingRecord?.teacherId || '',
+      session: result.session || existingRecord?.session || '2025/2026',
+      term: result.term || existingRecord?.term || 'First Term',
+      scores: result.scores || existingRecord?.scores || { assignment: 0, quiz: 0, ca: 0, midTerm: 0, exam: 0 },
+      total,
+      grade,
+      teacherRemark: result.teacherRemark !== undefined ? result.teacherRemark : (existingRecord?.teacherRemark || ''),
+      status: result.status || existingRecord?.status || 'draft',
+      adminRemark: result.adminRemark !== undefined ? result.adminRemark : (existingRecord?.adminRemark || ''),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (existingIndex !== -1) {
+      store.results[existingIndex] = record;
+    } else {
+      store.results.push(record);
+    }
+
+    try {
+      await withTimeout(setDoc(doc(db, 'results', record.id), record), 2000);
+    } catch (e) {
+      console.warn('Firestore set doc error:', e);
+    }
+
+    // Trigger individual notifications if status is approved or rejected
+    if (record.status === 'approved') {
+      const student = store.students.find((s) => s.id === record.studentId);
+      const subject = store.subjects.find((sub) => sub.id === record.subjectId);
+      const studentName = student ? student.fullName : 'Student';
+      const subjectName = subject ? subject.name : 'Subject';
+
+      const parentNotif: AppNotification = {
+        id: 'notif_p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        schoolId: record.schoolId,
+        recipientRole: 'parent',
+        recipientId: student?.parentEmail || student?.id,
+        title: `Result Approved: ${subjectName} (${studentName})`,
+        message: `Assessment result for ${studentName} in ${subjectName} has been approved and published to the academic report card.`,
+        type: 'result_approved',
+        targetClassId: record.classId,
+        targetSubjectId: record.subjectId,
+        targetStudentId: record.studentId,
+        targetResultId: record.id,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      store.notifications.unshift(parentNotif);
+    } else if (record.status === 'rejected') {
+      const student = store.students.find((s) => s.id === record.studentId);
+      const subject = store.subjects.find((sub) => sub.id === record.subjectId);
+      const studentName = student ? student.fullName : 'Student';
+      const subjectName = subject ? subject.name : 'Subject';
+
+      const teacherNotif: AppNotification = {
+        id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        schoolId: record.schoolId,
+        recipientRole: 'teacher',
+        recipientId: record.teacherId,
+        title: `Result Returned: ${subjectName} (${studentName})`,
+        message: `Admin returned result for ${studentName} in ${subjectName}: "${record.adminRemark || 'Needs revision'}".`,
+        type: 'result_rejected',
+        targetClassId: record.classId,
+        targetSubjectId: record.subjectId,
+        targetStudentId: record.studentId,
+        targetResultId: record.id,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      store.notifications.unshift(teacherNotif);
+    }
+
+    saveLocalStore(store);
+    return record;
   },
 
   async saveResultsBatch(resultsList: Partial<SubjectResult>[]): Promise<void> {
@@ -1085,18 +1283,18 @@ export const dbService = {
       const existingIndex = store.results.findIndex(
         (r) =>
           (item.id && r.id === item.id) ||
-          (r.schoolId === item.schoolId &&
-            r.studentId === item.studentId &&
-            r.subjectId === item.subjectId)
+          (r.studentId === item.studentId &&
+            r.subjectId === item.subjectId &&
+            (r.schoolId === item.schoolId || !item.schoolId || !r.schoolId))
       );
 
       const existingRecord = existingIndex !== -1 ? store.results[existingIndex] : null;
 
       const record: SubjectResult = {
         id: item.id || existingRecord?.id || `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${item.studentId}`,
-        schoolId: item.schoolId!,
+        schoolId: item.schoolId || existingRecord?.schoolId || 'sch_graceville_01',
         studentId: item.studentId!,
-        classId: item.classId!,
+        classId: item.classId || existingRecord?.classId || '',
         subjectId: item.subjectId!,
         teacherId: item.teacherId || existingRecord?.teacherId || '',
         session: item.session || existingRecord?.session || '2025/2026',
@@ -1242,7 +1440,7 @@ export const dbService = {
     const isStudentMatch = (r: SubjectResult) =>
       (!r.schoolId || r.schoolId === schoolId) &&
       (r.studentId === studentId || (studentCode ? r.studentId === studentCode : false)) &&
-      (r.status === 'approved' || r.status === 'submitted');
+      r.status === 'approved';
 
     const localResults = localStore.results.filter(isStudentMatch);
     const mergedMap = new Map<string, SubjectResult>();
@@ -1279,11 +1477,13 @@ export const dbService = {
 
   async getAllResultsForSchool(schoolId: string): Promise<SubjectResult[]> {
     const localStore = getLocalStore();
-    const localResults = localStore.results.filter((r) => r.schoolId === schoolId);
+    const localResults = localStore.results.filter((r) => !r.schoolId || r.schoolId === schoolId);
 
     const mergedMap = new Map<string, SubjectResult>();
     localResults.forEach((r) => {
-      const key = r.id || `${r.studentId}_${r.subjectId}`;
+      const sessionKey = r.session || '2025/2026';
+      const termKey = r.term || 'First Term';
+      const key = `${r.studentId}_${r.subjectId}_${sessionKey}_${termKey}`;
       mergedMap.set(key, r);
     });
 
@@ -1293,7 +1493,9 @@ export const dbService = {
       if (!snap.empty) {
         const firestoreResults = snap.docs.map((d) => ({ id: d.id, ...(d.data() as SubjectResult) }));
         firestoreResults.forEach((r) => {
-          const key = r.id || `${r.studentId}_${r.subjectId}`;
+          const sessionKey = r.session || '2025/2026';
+          const termKey = r.term || 'First Term';
+          const key = `${r.studentId}_${r.subjectId}_${sessionKey}_${termKey}`;
           const existing = mergedMap.get(key);
           if (!existing || new Date(r.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
             mergedMap.set(key, r);
@@ -1382,6 +1584,29 @@ export const dbService = {
   },
 
   // CHAT MESSAGES
+  async getAllChatMessagesForSchool(schoolId: string): Promise<ChatMessage[]> {
+    const store = getLocalStore();
+    try {
+      const q = query(collection(db, 'chatMessages'), where('schoolId', '==', schoolId));
+      const snap = await withTimeout(getDocs(q), 2000);
+      if (!snap.empty) {
+        const remoteMsgs = snap.docs.map((d) => d.data() as ChatMessage);
+        const map = new Map<string, ChatMessage>();
+        store.chatMessages.forEach((m) => map.set(m.id, m));
+        remoteMsgs.forEach((m) => map.set(m.id, m));
+        store.chatMessages = Array.from(map.values());
+        saveLocalStore(store);
+      }
+    } catch (err) {
+      console.warn('Firestore chatMessages fetch warning:', err);
+    }
+
+    const currentStore = getLocalStore();
+    return currentStore.chatMessages
+      .filter((m) => m.schoolId === schoolId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  },
+
   async getChatMessagesForUser(schoolId: string, userUidOrEmail: string | string[]): Promise<ChatMessage[]> {
     const store = getLocalStore();
     const ids = Array.isArray(userUidOrEmail) ? userUidOrEmail : [userUidOrEmail];
@@ -1445,6 +1670,31 @@ export const dbService = {
       console.warn('Firestore chat send error:', e);
     }
     return newMsg;
+  },
+
+  async markChatMessagesAsRead(messageIds: string[]): Promise<void> {
+    if (!messageIds || messageIds.length === 0) return;
+    const store = getLocalStore();
+    const idSet = new Set(messageIds);
+    let modified = false;
+    store.chatMessages.forEach((m) => {
+      if (idSet.has(m.id) && !m.read) {
+        m.read = true;
+        modified = true;
+      }
+    });
+    if (modified) {
+      saveLocalStore(store);
+      try {
+        await Promise.all(
+          messageIds.map((id) =>
+            withTimeout(updateDoc(doc(db, 'chatMessages', id), { read: true }), 2000).catch(() => {})
+          )
+        );
+      } catch (e) {
+        /* ignore */
+      }
+    }
   },
 
   // ANNOUNCEMENTS
@@ -1546,4 +1796,58 @@ export const dbService = {
     }
     return newMsg;
   },
+
+  // AUDIT TRAIL LOGGING
+  async logAuditEvent(
+    event: Omit<AuditLog, 'id' | 'timestamp'>
+  ): Promise<AuditLog> {
+    const store = getLocalStore();
+    const newAudit: AuditLog = {
+      ...event,
+      id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      timestamp: new Date().toISOString(),
+    };
+
+    if (!store.auditLogs) store.auditLogs = [];
+    store.auditLogs.unshift(newAudit);
+
+    // Keep max 500 audit items in local store
+    if (store.auditLogs.length > 500) {
+      store.auditLogs = store.auditLogs.slice(0, 500);
+    }
+
+    saveLocalStore(store);
+    try {
+      await withTimeout(setDoc(doc(db, 'auditLogs', newAudit.id), newAudit), 2000);
+    } catch (e) {
+      /* ignore */
+    }
+    return newAudit;
+  },
+
+  async getAuditLogs(schoolId: string): Promise<AuditLog[]> {
+    const store = getLocalStore();
+    try {
+      const q = query(collection(db, 'auditLogs'), where('schoolId', '==', schoolId));
+      const snap = await withTimeout(getDocs(q), 2000);
+      if (!snap.empty) {
+        const remoteLogs = snap.docs.map((d) => d.data() as AuditLog);
+        const map = new Map<string, AuditLog>();
+        (store.auditLogs || []).forEach((l) => map.set(l.id, l));
+        remoteLogs.forEach((l) => map.set(l.id, l));
+        store.auditLogs = Array.from(map.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        saveLocalStore(store);
+      }
+    } catch (err) {
+      console.warn('Firestore auditLogs fetch warning:', err);
+    }
+
+    const current = getLocalStore();
+    return (current.auditLogs || [])
+      .filter((l) => l.schoolId === schoolId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  },
 };
+

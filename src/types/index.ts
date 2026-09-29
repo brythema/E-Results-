@@ -204,3 +204,16 @@ export interface AdminDirectMessage {
   createdAt: string;
 }
 
+export interface AuditLog {
+  id: string;
+  schoolId: string;
+  actorUid: string;
+  actorName: string;
+  actorRole: UserRole | 'system';
+  action: string; // e.g. 'APPROVE_RESULTS', 'REJECT_RESULT', 'CREATE_STUDENT', 'DELETE_STUDENT', 'PUBLISH_ANNOUNCEMENT'
+  resource: string; // e.g. 'results', 'students', 'announcements'
+  details: string;
+  timestamp: string;
+}
+
+

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/dbService';
-import { ClassItem, SubjectItem, ClassSubjectAssignment, SubjectResult } from '../../types';
+import { ClassItem, SubjectItem, ClassSubjectAssignment, SubjectResult, Teacher } from '../../types';
 import { StatCard } from '../common/StatCard';
 import { Badge } from '../common/Badge';
+import { getTeacherAssignments } from '../../utils/teacherUtils';
 import {
   FileSpreadsheet,
   BookOpen,
@@ -14,6 +15,8 @@ import {
   Sparkles,
   AlertCircle,
   RotateCcw,
+  ShieldAlert,
+  MessageSquare,
 } from 'lucide-react';
 
 interface TeacherDashboardProps {
@@ -27,54 +30,48 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 }) => {
   const { currentUser, currentSchool } = useAuth();
   const schoolId = currentSchool?.id || 'sch_graceville_01';
-  const teacherUid = currentUser?.uid || 'uid_teacher_math';
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [assignments, setAssignments] = useState<ClassSubjectAssignment[]>([]);
   const [myResults, setMyResults] = useState<SubjectResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
-  }, [schoolId, teacherUid]);
+  }, [schoolId, currentUser?.uid, currentUser?.email]);
 
   const loadData = async () => {
     setLoading(true);
-    const [clData, sbData, asgnData, rsData] = await Promise.all([
+    const [clData, sbData, tcData, asgnData, rsData] = await Promise.all([
       dbService.getClassesBySchool(schoolId),
       dbService.getSubjectsBySchool(schoolId),
+      dbService.getTeachersBySchool(schoolId),
       dbService.getClassSubjectAssignments(schoolId),
       dbService.getAllResultsForSchool(schoolId),
     ]);
 
-    setClasses(clData);
-    setSubjects(sbData);
+    setTeachers(tcData);
 
-    const userTeacherIds = [
-      currentUser?.uid,
-      currentUser?.email,
-      (currentUser as any)?.id,
-      'uid_teacher_math',
-    ].filter(Boolean) as string[];
+    // Filter assignments strictly to those assigned to THIS teacher
+    const mine = getTeacherAssignments(asgnData, currentUser, tcData);
+    setAssignments(mine);
 
-    // Filter assignments where this teacher is assigned
-    const mine = asgnData.filter(
-      (a) => userTeacherIds.includes(a.teacherId) || a.teacherId === teacherUid
-    );
-    const activeAssignments = mine.length > 0 ? mine : asgnData;
-    setAssignments(activeAssignments);
+    // Filter classes and subjects to only those present in teacher's assignments
+    const assignedClassIds = new Set(mine.map((a) => a.classId));
+    const assignedSubjectIds = new Set(mine.map((a) => a.subjectId));
 
-    const teacherClassSubjectKeys = new Set(
-      activeAssignments.map((a) => `${a.classId}___${a.subjectId}`)
+    setClasses(clData.filter((c) => assignedClassIds.has(c.id)));
+    setSubjects(sbData.filter((s) => assignedSubjectIds.has(s.id)));
+
+    // Results: strictly include ONLY results for this teacher's assigned class & subject pairs
+    const teacherCoursePairKeys = new Set(
+      mine.map((a) => `${a.classId}___${a.subjectId}`)
     );
 
-    const filteredRs = rsData.filter(
-      (r) =>
-        userTeacherIds.includes(r.teacherId) ||
-        r.teacherId === teacherUid ||
-        teacherClassSubjectKeys.has(`${r.classId}___${r.subjectId}`) ||
-        r.status === 'rejected'
+    const filteredRs = rsData.filter((r) =>
+      teacherCoursePairKeys.has(`${r.classId}___${r.subjectId}`)
     );
     setMyResults(filteredRs);
 
@@ -103,13 +100,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={() => onNavigateTab('assessment_entry')}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Open Score Entry Sheet
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => onNavigateTab('chat')}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4 text-indigo-400" />
+              Parent-Teacher Chat
+            </button>
+            <button
+              onClick={() => onNavigateTab('assessment_entry')}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Open Score Entry Sheet
+            </button>
+          </div>
         </div>
       </div>
 
