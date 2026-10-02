@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePWA } from '../../context/PWAContext';
 import { dbService } from '../../services/dbService';
+import { DEMO_MODE } from '../../config';
 import { UserRole, AppNotification } from '../../types';
 import {
   LogOut,
@@ -312,7 +313,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Quick Switch Demo Role Dropdown */}
+            {/* Quick Switch Demo Role Dropdown — visible only in explicit demo mode */}
+            {DEMO_MODE && (
             <div className="relative">
               <button
                 onClick={() => setShowDemoDropdown(!showDemoDropdown)}
@@ -361,6 +363,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* Current User Info */}
             <div className="flex items-center gap-2 border-l border-slate-800 pl-2 sm:pl-3">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePWA } from '../../context/PWAContext';
+import { DEMO_MODE } from '../../config';
 import { UserRole } from '../../types';
 import {
   GraduationCap,
@@ -110,7 +111,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
 
 
-        {/* Quick Demo Login Picker */}
+        {/* Quick Demo Login Picker — visible only in explicit demo mode */}
+        {DEMO_MODE && (
         <div className="mb-6 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -139,13 +141,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             })}
           </div>
         </div>
+        )}
 
+        {DEMO_MODE && (
         <div className="relative my-4 flex items-center justify-center">
           <div className="border-t border-slate-200 w-full"></div>
           <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider absolute">
             Or Sign In With Password
           </span>
         </div>
+        )}
 
         {/* Standard Email/Password Form */}
         <form onSubmit={handleSubmit} className="space-y-4">

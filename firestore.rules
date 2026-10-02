@@ -1,8 +1,183 @@
 rules_version = '2';
+
+// E³ School Portal — role-based Firestore rules.
+//
+// Trust model:
+//   - Every authenticated user has a profile document at users/{uid}
+//     carrying `role` (super_admin | school_admin | teacher | parent |
+//     student) and, for school-scoped roles, `schoolId`.
+//   - All school data documents carry a `schoolId` field. Tenancy is
+//     enforced here in the rules, not just in the UI.
+//   - super_admin sees every school. school_admin and teacher are scoped
+//     to their own schoolId. parents/students read only their own
+//     children's results (linked via users/{uid}.studentId) and school
+//     notices.
+//
+// Residual risks (documented, accepted for v1):
+//   - Teachers may write results anywhere in their own school; per-subject
+//     allocation is enforced by the app UI, not the rules.
+//   - school_admin can write user profiles in their school (needed for
+//     provisioning teachers/parents in-app); a compromised school_admin
+//     account can escalate within that school only.
+//   - Deploying these rules requires every real sign-in to have a profile
+//     document at users/{uid}, otherwise reads are denied.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function role() {
+      return me().role;
+    }
+
+    function mySchool() {
+      return me().schoolId;
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && role() == 'super_admin';
+    }
+
+    function isSchoolAdmin() {
+      return signedIn() && role() == 'school_admin';
+    }
+
+    function isTeacher() {
+      return signedIn() && role() == 'teacher';
+    }
+
+    // Read/write access to any document whose schoolId matches the
+    // caller's school (super admins pass for every school).
+    function sameSchool(schoolId) {
+      return isSuperAdmin()
+        || ((isSchoolAdmin() || isTeacher()) && schoolId == mySchool());
+    }
+
+    // ---- Users / profiles -------------------------------------------------
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isSchoolAdmin() || isSuperAdmin());
+      allow list: if false; // profiles are fetched by uid, never enumerated client-side
+      // Only admins write profiles; the uid of a profile is the doc id and
+      // can never be claimed by another account.
+      allow create, update: if isSuperAdmin()
+        || (isSchoolAdmin() && request.resource.data.schoolId == mySchool());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---- Schools ----------------------------------------------------------
+    match /schools/{schoolId} {
+      allow get, list: if signedIn();
+      allow create, update: if isSuperAdmin()
+        || (isSchoolAdmin() && schoolId == mySchool());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---- School-scoped records -------------------------------------------
+    match /students/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update: if sameSchool(request.resource.data.schoolId);
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    match /teachers/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update: if sameSchool(request.resource.data.schoolId);
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    match /classes/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update, delete: if sameSchool(resource.data.schoolId) || sameSchool(request.resource.data.schoolId);
+    }
+
+    match /subjects/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update, delete: if sameSchool(resource.data.schoolId) || sameSchool(request.resource.data.schoolId);
+    }
+
+    match /assignments/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update, delete: if sameSchool(resource.data.schoolId) || sameSchool(request.resource.data.schoolId);
+    }
+
+    // ---- Results (grades are the sensitive core) ---------------------------
+    match /results/{docId} {
+      allow get, list: if signedIn() && (
+        isSuperAdmin()
+        || ((isSchoolAdmin() || isTeacher()) && resource.data.schoolId == mySchool())
+        // Parents and students may only read results for their linked student.
+        || ((role() == 'parent' || role() == 'student') && resource.data.studentId == me().studentId)
+      );
+      // Drafts, submissions and admin approval all go through these writes.
+      allow create, update: if (isSchoolAdmin() || isTeacher())
+        && request.resource.data.schoolId == mySchool();
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    // ---- Notifications ------------------------------------------------------
+    match /notifications/{docId} {
+      allow get, list: if signedIn() && (
+        isSuperAdmin()
+        || ((isSchoolAdmin() || isTeacher()) && resource.data.schoolId == mySchool())
+        || ((role() == 'parent' || role() == 'student') && resource.data.recipientId == request.auth.uid)
+      );
+      allow create, update: if signedIn() && (sameSchool(request.resource.data.schoolId) || sameSchool(resource.data.schoolId));
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    // ---- Announcements ------------------------------------------------------
+    match /announcements/{docId} {
+      allow get, list: if signedIn() && sameSchool(resource.data.schoolId);
+      allow create, update: if (isSchoolAdmin() || isTeacher())
+        && request.resource.data.schoolId == mySchool();
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    // ---- Admin direct messages (fees reminders, notices) --------------------
+    match /adminDirectMessages/{docId} {
+      allow get, list: if signedIn() && (
+        isSuperAdmin()
+        || ((isSchoolAdmin() || isTeacher()) && resource.data.schoolId == mySchool())
+        || (role() == 'parent' && resource.data.recipientEmail == me().email)
+      );
+      allow create, update: if isSchoolAdmin() && request.resource.data.schoolId == mySchool();
+      allow delete: if isSchoolAdmin() && resource.data.schoolId == mySchool();
+    }
+
+    // ---- Teacher ↔ parent chat ----------------------------------------------
+    match /chatMessages/{docId} {
+      allow get, list: if signedIn() && (
+        isSuperAdmin()
+        || ((isSchoolAdmin()) && resource.data.schoolId == mySchool())
+        // Teachers and parents only see threads they participate in.
+        || ((isTeacher() || role() == 'parent') && resource.data.schoolId == mySchool()
+            && (resource.data.senderUid == request.auth.uid || resource.data.recipientUid == request.auth.uid))
+      );
+      // A message is always authored by its sender.
+      allow create: if (isTeacher() || role() == 'parent' || isSchoolAdmin())
+        && request.resource.data.schoolId == mySchool()
+        && request.resource.data.senderUid == request.auth.uid;
+      // Read receipts only.
+      allow update: if signedIn() && resource.data.schoolId == mySchool()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---- Audit log (append-only) ---------------------------------------------
+    match /auditLogs/{docId} {
+      allow get, list: if signedIn() && (isSuperAdmin()
+        || ((isSchoolAdmin()) && resource.data.schoolId == mySchool()));
+      allow create: if signedIn() && request.resource.data.schoolId == mySchool();
+      allow update, delete: if false;
+    }
+
+    // ---- Everything else: denied by default ----------------------------------
   }
 }

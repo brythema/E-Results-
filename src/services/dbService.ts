@@ -10,6 +10,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { DEMO_MODE } from '../config';
 import {
   School,
   UserProfile,
@@ -617,8 +618,12 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs = 2000): Promise<T>
 
 // Database Service with Firestore & Local fallback
 export const dbService = {
-  // Sync seed data to Firestore if empty or on init
+  // Sync seed data to Firestore if empty or on init.
+  // Demo seeding runs ONLY in explicit demo mode (VITE_DEMO_MODE=true) —
+  // a deployed app must never write demo schools/users/results into the
+  // production database.
   async initializeDatabase(): Promise<void> {
+    if (!DEMO_MODE) return;
     try {
       // Check if school exists in firestore with 2s timeout
       const schSnap = await withTimeout(getDocs(collection(db, 'schools')), 2000);
